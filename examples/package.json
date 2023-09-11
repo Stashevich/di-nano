@@ -1,0 +1,13 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "description": "di-nano usage example",
+  "main": "index.js",
+  "scripts": {
+    "server": "node ./index.js"
+  },
+  "dependencies": {
+    "di-nano": "../",
+    "express": "^4.18.2"
+  }
+}

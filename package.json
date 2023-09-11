@@ -1,0 +1,26 @@
+{
+  "name": "di-nano",
+  "version": "1.0.0",
+  "description": "An elegant implementation of Dependency Injection for Node.js projects",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --watch test"
+  },
+  "keywords": [
+    "dependency injection",
+    "di",
+    "tdd"
+  ],
+  "author": "stashevichvlad@gmail.com",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "chai-as-promised": "^7.1.1",
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Stashevich/di-nano"
+  }
+}
