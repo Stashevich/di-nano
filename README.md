@@ -1,82 +1,102 @@
 # GENERAL
   An implementation of Dependency Injection pattern in a way, which enables its usages in a simplest way possible.
 
-  ```javascript
-  const di = require("di-nano");
-
-  di.init((ctx) => {
-    ctx.registerAll(require("./some_module"));
-    return ctx.invoke();
-  }).then((ctx) => {
-    // ...
-  });
-  ```
-
   > [!NOTE]
   > DI decreases interdependence between modules, what leads to simplifying of tests writing and application logic.
 
-  There are only 5 functions exposed to a user, to make everything work:
+  Looks as follows:
+  ```javascript
+  // Module's dependencies listed as function parameters.
+
+  // user_controller.js - a SYNCHRONOUS module:
+  exports.UserController = ($conf, DataProvider) => { // <--- dependencies are in braces
+    // ...
+    router.get("/get-some-data", async (req, res, next) => {
+      // ...
+      const result = await DataProvider.getSomeData();
+      // ...
+    });
+    return router;
+  }
+
+  // data_provider.js - an ASYNCHRONOUS module:
+  exports.DataProvider = async ($conf) => { // <--- dependencies are in braces
+    // YOUR PREFERRED DB CONNECTOR
+    return connector;
+  }
+
+  // server.js
+  const express = require("express");
+  const di      = require("di-nano");
+
+  di.init((ctx) => {
+    ctx.registerOne(require(process.env.APP_CONFIG_PATH), "$conf");
+    ctx.registerAll(require("./data_provider"));
+    ctx.registerAll(require("./user_controller"));
+    return ctx.invoke();
+    // use an object destruction to get a list of specific modules here
+  }).then(({ $conf, UserController }) => { // <----
+    const server = express();
+    // ...
+    server.use("/user", UserController);
+    // ...
+    server.listen($conf.server.port, () => {
+      console.log(`Server is listening at ${$conf.server.port} port.`);
+    });
+  });
+  ```
+
+### EXAMPLE
+  A runnable working example could be found [here](examples).
+
+# USAGE
+
+  **di-nano** exposes next 5 functions to the end user:
   - [init](#initcallback-promise)
   - [registerAll](#registeralldependencies-undefined)
   - [registerOne](#registeronedependency-name-undefined)
   - [registerMock](#registermockname-undefined)
   - [invoke](#invoke-promise)
 
-# USAGE
-
   To define a dependency, create a function and export it under any name.
   Names **MUST** be unique among each other.
 
-  ### 1) Synchronous dependency:
+  #### 1) SYNCHRONOUS DEPENDENCY:
   ```javascript
-  exports.Dependency_A = () => {
-    // ...
-  }
+  exports.SomeModule = () => { /**/ }
   ```
 
-  ### 2) Asynchronous dependency:
+  #### 2) ASYNCHRONOUS DEPENDENCY:
   ```javascript
-  exports.Dependency_A = async () => {
-    // ...
-  }
+  exports.SomeModule = async () => { /**/ }
 
   // or
 
-  exports.Dependency_B = () => {
+  exports.SomeModule = () => {
     // ...
-    return new Promise((resolve, reject) => {
-    // ...
-    });
+    return new Promise((resolve, reject) => { /**/ });
   }
   ```
   > [!NOTE]
   > If a function returns a [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise), it will be automatically converted into async dependency.
 
-  ### 3) Setting a module's dependencies list:
+  #### 3) SETTING DEPENDENCIES LIST:
   To define module's dependencies, list them as typical function parameters, assuming they are defined in the same way, described already above. They can have a list of it's own dependencies too:
   ```javascript
-  exports.Dependency_A = (dep_B, dep_C, ... dep_N) => {
-    // ...
-  }
+  exports.Module_A = (Module_B, Module_C, ... Module_N) => { /**/ }
   ```
 
-  ### 4) Multiple dependencies in a single file:
+  #### 4) MULTIPLE DEPENDENCIES IN A SINGLE FILE:
   There is nothing special about this, since it is a plain Node.js export:
   ```javascript
-  exports.Dependency_A = (Dependency_C, Dependency_B) => {
-    // ...
-  }
+  exports.Module_A = (Module_C, Module_B) => { /**/ }
 
-  exports.Dependency_B = (Dependency_C) => {
-    // ...
-  }
+  exports.Module_B = (Module_C) => { /**/ }
 
-  exports.Dependency_C = () => {
-    // ...
-  }
+  exports.Module_C = () => { /**/ }
   ```
 
-  ### 5) Context build up:
+  #### 5) CONTEXT BUILD UP:
   ```javascript
   const di = require("di-nano");
 
@@ -99,13 +119,11 @@
   > [!NOTE]
   > Before returning a result, [**ctx.invoke()**](#invoke-promise) will wait for all asynchronous dependencies to resolve.
 
-  ### 6) Anonymous module export:
+  #### 6) ANONYMOUS MODULE EXPORT:
   It is also possible to register an anonymous function or an object, but a name of a module **MUST** be set additionally. For this purpose serves [**registerOne**](#registeronedependency-name-undefined):
   ```javascript
   // module_a.js
-  module.exports = () => {
-    // ...
-  }
+  module.exports = () => { /**/ }
 
   // index.js
   di.init((ctx) => {
@@ -114,52 +132,6 @@
   }).then((ctx) => {
     // ...
   });
-  ```
-
-# EXAMPLE
-  A runnable working example could be found [here](examples).
-
-  A possible use case is described below, emphasizing the key points of DI:
-  ```javascript
-  // data_provider.js
-  exports.DataProvider = async ($conf) => { // requesting a $conf module as a dependency
-    // YOUR PREFERRED DB CONNECTOR
-    return connector;
-  }
-
-  // user_controller.js
-  exports.UserController = ($conf, DataProvider) => { // requesting a $conf and DataProvider
-    // ...
-    router.get("/get-some-data", async (req, res, next) => {
-      try {
-        const result = await DataProvider.getSomeData();
-        res.send(result);
-      } catch (err) {
-        next(err);
-      }
-    });
-    return router;
-  }
-
-  // server.js
-  const express = require("express");
-  const di      = require("di-nano");
-
-  di.init((ctx) => {
-    ctx.registerObj(require(process.env.APP_CONFIG_PATH), "$conf");
-    ctx.registerAll(require("./data_provider"));
-    ctx.registerAll(require("./user_controller"));
-    return ctx.invoke();
-  }).then(({ $conf, UserController }) => { // plain JS technique, can receive modules here also
-    const server = express();
-    ...
-    server.use("/user", UserController);
-    ...
-    server.listen($conf.server.port, () => {
-      console.log(`Server is listening at ${$conf.server.port} port.`);
-    });
-  });
-
   ```
 
 # MODULE API
