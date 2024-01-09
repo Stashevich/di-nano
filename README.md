@@ -90,9 +90,7 @@
   There is nothing special about this, since it is a plain Node.js export:
   ```javascript
   exports.Module_A = (Module_C, Module_B) => { /**/ }
-
   exports.Module_B = (Module_C) => { /**/ }
-
   exports.Module_C = () => { /**/ }
   ```
 
