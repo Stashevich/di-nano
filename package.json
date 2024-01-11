@@ -1,6 +1,6 @@
 {
   "name": "di-nano",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "An elegant implementation of Dependency Injection for Node.js projects",
   "main": "index.js",
   "scripts": {

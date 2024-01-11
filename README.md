@@ -34,7 +34,7 @@
     ctx.registerAll(require("./data_provider"));
     ctx.registerAll(require("./user_controller"));
     return ctx.invoke();
-    // use an object destruction to get a list of specific modules here
+    // use an object destruction to get a list of specific modules here, when needed
   }).then(({ $conf, UserController }) => { // <----
     const server = express();
     // ...
