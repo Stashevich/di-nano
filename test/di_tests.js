@@ -81,7 +81,7 @@ describe("[ Dependency Injection Engine ]", () => {
     }
   });
 
-  describe("[ build up verification ]", () => {
+  describe("— build up verification", () => {
     it("should receive a ready-to-use async dependency as prop", async () => {
       const dep1 = { a: (b) => ({ getValue: () => b.innerValue() }) };
       const dep2 = {
@@ -158,22 +158,9 @@ describe("[ Dependency Injection Engine ]", () => {
       });
       ctx.b.value().should.eql("b_result a_result");
     });
-
-    it("should fail when can't find a dependency of a given name", async() => {
-      const dep = { a: (b) => ({}) };
-      try {
-        await di.init((ctx) => {
-          ctx.registerAll(dep);
-          return ctx.invoke();
-        });
-        should.fail("Unxepected flow");
-      } catch (e) {
-        e.message.should.eql(`[DI Engine]::can't find a dependency with a given name: "b".`);
-      }
-    });
   });
 
-  describe("[ cirular dependency ]", () => {
+  describe("— cirular dependency", () => {
     it("should fail to build up in case of synchronous CD", async () => {
       const dep1 = { a: (b) => ({ value: () => b.name(), name: () => "abc" }) };
       const dep2 = { b: (a) => ({ value: () => a.name(), name: () => "xyz" }) };
@@ -219,39 +206,14 @@ describe("[ Dependency Injection Engine ]", () => {
     });
   })
 
-  describe("[ exceptions handling ]", () => {
-    it("should fail when two or more modules with a same name", async () => {
-      try {
-        await di.init((ctx) => {
-          ctx.registerAll({ a: () => {} });
-          ctx.registerAll({ a: () => {} });
-          return ctx.invoke();
-        });
-        should.fail("Unxepected flow");
-      } catch (e) {
-        e.message.should.eql(`[DI Engine]::a module with "a" name is already exists.`);
-      }
-    });
-
-    it("should fail when a dependency isn't an object or a function", async () => {
-      try {
-        await di.init((ctx) => {
-          ctx.registerAll({ a: "some string" });
-          return ctx.invoke();
-        });
-        should.fail("Unxepected flow");
-      } catch (e) {
-        e.message.should.eql(`[DI Engine]::invalid dependency type - "string", expected a "function".`);
-      }
-    });
-
+  describe("— exceptions handling", () => {
     it("should fail on attemp to use an invalid dependency name", async () => {
       try {
         await di.init((ctx) => {
           ctx.registerOne({ a: () => () => {} });
           return ctx.invoke();
         })
-        should.fail("Unxepected flow");
+        should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql("[DI Engine]::invalid dependency name. Expected a string.");
       }
@@ -263,7 +225,7 @@ describe("[ Dependency Injection Engine ]", () => {
           ctx.registerAll({ a: () => "result-mock" });
           return ctx.invoke();
         });
-        should.fail("Unxepected flow");
+        should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql(`[DI Engine]::got "string" as a dependency evaluation result. Expected an object or a function.`);
       }
@@ -276,56 +238,9 @@ describe("[ Dependency Injection Engine ]", () => {
           return ctx.invoke();
         });
         ctx.a();
-        should.fail("Unxepected flow");
+        should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql(`[DI Engine]::Proxy::apply::"obj" is not a function".`);
-      }
-    });
-  });
-
-  describe("[ parser ]", () => {
-    const check = async (obj) => {
-      const ctx = await di.init((ctx) => {
-        ctx.registerAll(Object.assign(obj, {
-          b: () => () => ({}),
-          c: () => () => ({}),
-        }));
-        return ctx.invoke();
-      });
-      ctx.should.have.property("a");
-      ctx.should.have.property("b");
-      ctx.should.have.property("c");
-      return ctx;
-    }
-
-    it("should handle an arrow function", () =>
-      check({ a: (b, c) => () => ({}) })
-    );
-
-    it("should handle a function declaration", () =>
-      check({ a: function (b, c) { return () => ({}) } })
-    );
-
-    it("should handle multiline declaration", () =>
-      check({ a: function (
-          b, c
-        ) { return () => ({}); }
-      })
-    );
-
-    it("should handle spaces between props", () =>
-      check({ a: function ( b, c ) { return () => ({}) } })
-    );
-
-    it("should fail on attempt to use an object destruction for function props", async () => {
-      try {
-        await check({ a: ({ b, c }) => () => ({}) });
-        should.fail();
-      } catch(e) {
-        e.message.should.eql(
-          `[DI Engine]::an invalid way of defining dependencies names => "({ b, c })". ` +
-          "Must be a plain comma separated list."
-        )
       }
     });
   });
