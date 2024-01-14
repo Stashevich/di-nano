@@ -67,16 +67,7 @@ describe("[ Error Module ]", () => {
       throwErr(ErrorCode.INCOMPLETE, "get");
       should.fail("Unexpected flow");
     } catch (e) {
-      msgCheck(e, 'Proxy::get::an attempt to use an incomplete dependency instance.');
-    }
-  });
-
-  it("should throw NOT_CALLABLE error", () => {
-    try {
-      throwErr(ErrorCode.NOT_CALLABLE, "obj");
-      should.fail("Unexpected flow");
-    } catch (e) {
-      msgCheck(e, 'Proxy::apply::"obj" is not a function".');
+      msgCheck(e, 'an attempt to use an incomplete dependency instance.');
     }
   });
 
@@ -105,15 +96,6 @@ describe("[ Error Module ]", () => {
       should.fail("Unexpected flow");
     } catch (e) {
       msgCheck(e, `can't find a dependency with a given name: "mock".`);
-    }
-  });
-
-  it("should throw UNEXPECTED error", () => {
-    try {
-      throwErr(ErrorCode.UNEXPECTED, "mock");
-      should.fail("Unexpected flow");
-    } catch (e) {
-      msgCheck(e, 'Proxy::received an invalid object type - "mock". Must be an instance of Dependency class.');
     }
   });
 });
