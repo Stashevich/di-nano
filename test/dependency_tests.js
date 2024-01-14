@@ -1,41 +1,57 @@
 const should            = require("chai").should();
 const { describe }      = require("mocha");
 const { Dependency,
-        bindContext,
-        throwErrOnCD,
-        buildUpTree,
         parseDepsNames } = require("../lib/dependency");
 
 describe("[ Dependency ]", () => {
-  it("should match own special properties", () => {
-    const dep = new Dependency({});
-    dep.pathThrough(bindContext).should.eql(false);
-    dep.pathThrough(throwErrOnCD).should.eql(false);
-    dep.pathThrough(buildUpTree).should.eql(false);
-    dep.pathThrough("propName").should.eql(true);
+  it("should return a list of own dependencies names", () => {
+    const dep = new Dependency("name-mock", (a, b) => ({}));
+    dep.getDepsNames().should.eql(["a", "b"]);
   });
 
-  it("should return a list of own dependencies names", () => {
-    const dep = new Dependency((a, b) => ({}));
-    dep.getDepsNames().should.eql(['a', 'b']);
+  it("should return a dependency name", async () => {
+    const modules = new Map([
+      ["a", new Dependency("a", () => ({}))]
+    ]);
+    await modules.get("a").buildUp(modules, "a");
+    modules.get("a").getName().should.eql("a");
+  });
+
+  it("should return a dependency value", async () => {
+    const modules = new Map([
+      ["a", new Dependency("a", () => ({ value : "OK" }))]
+    ]);
+    await modules.get("a").buildUp(modules, "a");
+    modules.get("a").getData().value.should.eql("OK");
+  });
+
+  it("should fail to return any instance's data until build is completed", async () => {
+    const dep = new Dependency("a", () => ({}));
+    try {
+      dep.getData();
+      should.fail("unexpected flow");
+    } catch (e) {
+      e.message.should
+        .eql("[DI Engine]::an attempt to use an incomplete dependency instance.")
+    }
   });
 
   describe("- dependecies parser", () => {
     it("should handle an arrow function", () => {
       const dep = (a, b) => ({});
-      parseDepsNames(dep.toString()).should.eql(['a', 'b']);
+      parseDepsNames(dep.toString()).should.eql(["a", "b"]);
     });
 
     it("should handle a function expression", () => {
       const dep = function (a, b, c) {};
-      parseDepsNames(dep.toString()).should.eql(['a', 'b', 'c']);
+      parseDepsNames(dep.toString()).should.eql(["a", "b", "c"]);
     });
 
     it("should handle multiline declaration 1", () => {
       const dep = function (
           b, c
         ) {};
-      parseDepsNames(dep.toString()).should.eql(['b', 'c']);
+      parseDepsNames(dep.toString()).should.eql(["b", "c"]);
     });
 
     it("should handle multiline declaration 2", () => {
@@ -43,23 +59,23 @@ describe("[ Dependency ]", () => {
           a,
           c
         ) => {};
-      parseDepsNames(dep.toString()).should.eql(['a', 'c']);
+      parseDepsNames(dep.toString()).should.eql(["a", "c"]);
     });
 
     it("should handle an async function", () => {
       const dep = async function (a, c) {};
-      parseDepsNames(dep.toString()).should.eql(['a', 'c']);
+      parseDepsNames(dep.toString()).should.eql(["a", "c"]);
     });
 
     it("should handle spaces between props", () => {
       const dep = async function ( b,  c ) {};
-      parseDepsNames(dep.toString()).should.eql(['b', 'c']);
+      parseDepsNames(dep.toString()).should.eql(["b", "c"]);
     });
 
     it("should fail on attempt to use an object destruction for function props", () => {
       const dep = async function ({ b, c }) {};
       try {
-        parseDepsNames(dep.toString()).should.eql(['b', 'c']);
+        parseDepsNames(dep.toString()).should.eql(["b", "c"]);
         should.fail("Unexpected flow");
       } catch(e) {
         e.message.should.eql(
@@ -70,30 +86,48 @@ describe("[ Dependency ]", () => {
     });
   });
 
-  describe("- context binding", () => {
-    it("should bind properties", () => {
-      const modules = {
-        a: new Dependency(() => { return "a"; }),
-        b: new Dependency((a) => { return a; })
-      };
-      modules.b[bindContext](modules, 'b');
-      modules.b.data().data().should.eql("a");
+  describe("- build up", () => {
+    it("should build a subtree of own dependencies, empty list", async () => {
+      const dep = new Dependency("a", () => ({ value: "OK" }));
+      await dep.buildUp(null);
+      dep.getData().value.should.eql("OK");
     });
 
-    it("should not bind anything when deps. list is empty", () => {
-      const modules = {
-        a: new Dependency(() => { return "a"; }),
-      };
-      modules.a[bindContext](modules, "a");
-      modules.a.data().should.eql("a");
+    it("should build a subtree of own dependencies", async () => {
+      const modules = new Map([
+        ["a", new Dependency("a", (b, c) => ({ value: `OK-${b.value}-${c.value}` }))],
+        ["b", new Dependency("b", () => ({ value: "b" }))],
+        ["c", new Dependency("c", (b) => ({ value: `OK-${b.value}-c` }))],
+      ]);
+      await modules.get("a").buildUp(modules, "a");
+      modules.get("a").getData().value.should.eql("OK-b-OK-b-c");
+      modules.get("b").getData().value.should.eql("b");
+      modules.get("c").getData().value.should.eql("OK-b-c");
+    });
+
+    it("should bind properties", async () => {
+      const modules = new Map([
+        ["a", new Dependency("a", () => { return { value: "a" }; })],
+        ["b", new Dependency("b", (a) => { return a; })]
+      ]);
+      await modules.get("b").buildUp(modules, "b");
+      modules.get("b").getData().value.should.eql("a");
+    });
+
+    it("should not bind anything when deps. list is empty", async () => {
+      let count = 0;
+      const dep = new Dependency("a", function fn () {
+        count = Array.from(arguments).length;
+        return { value: "a" };
+      });
+      await dep.buildUp(null, "a");
+      dep.getData().value.should.eql("a");
+      count.should.eql(0);
     });
 
     it("should fail when includes self", () => {
-      const modules = {
-        a: new Dependency((a) => {}),
-      };
       try {
-        modules.a[bindContext](modules, "a");
+        new Dependency("a", (a) => {}).cdCheck("a");
         should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql("[DI Engine]::circular dependency detected: [a => a].");
@@ -101,12 +135,12 @@ describe("[ Dependency ]", () => {
     });
 
     it("should fail when there is a circular dependency", () => {
-      const modules = {
-        a: new Dependency((b) => {}),
-        b: new Dependency((a) => {}),
-      };
+      const modules = new Map([
+        ["a", new Dependency("a", (b) => {})],
+        ["b", new Dependency("b", (a) => {})],
+      ]);
       try {
-        modules.a[bindContext](modules, "a");
+        modules.get("a").cdCheck("a", modules);
         should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql("[DI Engine]::circular dependency detected: [a => b => a].");
@@ -114,49 +148,20 @@ describe("[ Dependency ]", () => {
     });
 
     it("should fail when can't find a module with a given name", () => {
-      const modules = {
-        b: new Dependency((d) => {}),
-      };
+      const dep = new Dependency("b", (d) => {});
       try {
-        modules.b[bindContext](modules, "b");
+        dep.cdCheck("b", new Map);
         should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql(`[DI Engine]::can't find a dependency with a given name: "d".`);
       }
     });
-  });
-
-  describe("- build up", () => {
-    it("should build a subtree of own dependencies, empty list", async () => {
-      const modules = {
-        a: new Dependency(() => ({ value: "OK" })),
-      };
-      modules.a[bindContext](modules, "a");
-      await modules.a[buildUpTree](modules);
-      modules.a.data.value.should.eql("OK");
-    });
-
-    it("should build a subtree of own dependencies", async () => {
-      const modules = {
-        a: new Dependency((b, c) => ({ value: `OK-${b.data.value}-${c.data.value}` })),
-        b: new Dependency(() => ({ value: "b" })),
-        c: new Dependency((b) => ({ value: `OK-${b.data.value}-c` })),
-      };
-      modules.a[bindContext](modules, "a");
-      modules.b[bindContext](modules, "b");
-      modules.c[bindContext](modules, "c");
-      await modules.a[buildUpTree](modules);
-      modules.a.data.value.should.eql("OK-b-OK-b-c");
-      modules.b.data.value.should.eql("b");
-      modules.c.data.value.should.eql("OK-b-c");
-    });
 
     it("should refuse to build up a module, which not resolves with an object or a function", async () => {
       const test = async (value, type) => {
-        let modules = { a: new Dependency(() => { return value; }) };
-        modules.a[bindContext](modules, "a");
+        const dep = new Dependency("a", () => { return value; })
         try {
-          await modules.a[buildUpTree](modules);
+          await dep.buildUp(null);
           should.fail("Unexpected flow");
         } catch (e) {
           e.message.should
@@ -173,10 +178,9 @@ describe("[ Dependency ]", () => {
     });
 
     it("should not suppress a module's error", async () => {
-      let modules = { a: new Dependency(() => { throw new Error("mock"); }) };
-      modules.a[bindContext](modules, "a");
+      const dep = new Dependency("a", () => { throw new Error("mock"); });
       try {
-        await modules.a[buildUpTree](modules);
+        await dep.buildUp(null);
         should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql("mock");
@@ -184,37 +188,37 @@ describe("[ Dependency ]", () => {
     });
 
     it("should update dependency's readiness status", async () => {
-      let modules = { a: new Dependency(() => { return {} }) };
-      modules.a[bindContext](modules, "a");
-      await modules.a[buildUpTree](modules);
-      modules.a.isReady().should.eql(true);
+      const dep = new Dependency("a", () => { return {} });
+      await dep.buildUp(null);
+      dep.isReady().should.eql(true);
     });
 
     it("should 'freeze' a instantiated dependency", async () => {
-      let modules = { a: new Dependency(() => { return {} }) };
-      modules.a[bindContext](modules, "a");
-      await modules.a[buildUpTree](modules);
-      Object.isFrozen(modules.a.data).should.eql(true);
+      const modules = new Map([
+        ["a", new Dependency("a", () => ({}))]
+      ]);
+      await modules.get("a").buildUp(modules);
+      Object.isFrozen(modules.get("a").getData()).should.eql(true);
     });
 
     it("should not 'freeze' a dependency, when it is a mock", async () => {
-      let modules = { a: new Dependency(() => { return {} }, true) };
-      modules.a[bindContext](modules, "a");
-      await modules.a[buildUpTree](modules);
-      Object.isFrozen(modules.a.data).should.eql(false);
+      const modules = new Map([
+        ["a", new Dependency("a", () => ({}), true)]
+      ]);
+      await modules.get("a").buildUp(modules);
+      Object.isFrozen(modules.get("a").getData()).should.eql(false);
     });
 
-    it("should not instantiate a dependancy more then one time", async () => {
+    it("should not instantiate a dependency more than once", async () => {
       let counter = 0;
-      let modules = {
-        a: new Dependency(() => { counter++; return {} }),
-        b: new Dependency((a) => { return {} }),
-        c: new Dependency((a) => { return {} })
-      };
-      modules.a[bindContext](modules, "a");
-      modules.b[bindContext](modules, "b");
-      modules.c[bindContext](modules, "c");
-      await modules.a[buildUpTree](modules);
+      const modules = new Map([
+        ["a", new Dependency("a", () => { counter++; return {} })],
+        ["b", new Dependency("b", (a) => { return {} })],
+        ["c", new Dependency("c", (a) => { return {} })]
+      ]);
+      await modules.get("a").buildUp(modules);
+      await modules.get("b").buildUp(modules);
+      await modules.get("c").buildUp(modules);
       counter.should.eql(1);
     });
   });

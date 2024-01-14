@@ -66,7 +66,7 @@ describe("[ Dependency Injection Engine ]", () => {
     ctx.a.getValue().should.eql("OK");
   });
 
-  it("should successfully perform building a deps. tree", async () => {
+  it("should build up a module with a dependencies list", async () => {
     try {
       const ctx = await di.init((ctx) => {
         ctx.registerAll({
@@ -75,14 +75,32 @@ describe("[ Dependency Injection Engine ]", () => {
           c: () => ({})
         });
         return ctx.invoke();
-      })
+      });
     } catch(e) {
       should.fail(e.message);
     }
   });
 
+  it("should sort modules alphabetically in ASC order", async () => {
+    try {
+      const ctx = await di.init((ctx) => {
+        ctx.registerAll({
+          f: () => ({}),
+          i: () => ({}),
+        });
+        ctx.registerAll({ a: () => ({}) });
+        ctx.registerOne(() => ({}), "0c");
+        return ctx.invoke();
+      });
+      Object.keys(ctx).join(',').should.eql("0c,a,f,i");
+    } catch(e) {
+      console.log(e)
+      should.fail(e.message);
+    }
+  });
+
   describe("— build up verification", () => {
-    it("should receive a ready-to-use async dependency as prop", async () => {
+    it("should receive a ready-to-use async dependency as a prop", async () => {
       const dep1 = { a: (b) => ({ getValue: () => b.innerValue() }) };
       const dep2 = {
         b: () => new Promise(
@@ -188,14 +206,8 @@ describe("[ Dependency Injection Engine ]", () => {
     });
 
     it("should fail to build up in case of asynchronous CD", async () => {
-      const dep1 = {
-        b: (c) => new Promise((res) =>
-        setTimeout(() => res({ value: () => c.name(), name: () => "abc" }), 100)
-      )};
-      const dep2 = {
-        c: (b) => new Promise((res) =>
-        setTimeout(() => res({ value: () => b.name(), name: () => "xyz" }), 150)
-      )};
+      const dep1 = { b: (c) => new Promise((res) => res("b")) };
+      const dep2 = { c: (b) => new Promise((res) => res("c")) };
       await di.init((ctx) => {
         ctx.registerAll(dep1);
         ctx.registerAll(dep2);
@@ -216,31 +228,6 @@ describe("[ Dependency Injection Engine ]", () => {
         should.fail("Unexpected flow");
       } catch (e) {
         e.message.should.eql("[DI Engine]::invalid dependency name. Expected a string.");
-      }
-    });
-
-    it("should fail when a final result of dep. instance is not an object or function", async () => {
-      try {
-        await di.init((ctx) => {
-          ctx.registerAll({ a: () => "result-mock" });
-          return ctx.invoke();
-        });
-        should.fail("Unexpected flow");
-      } catch (e) {
-        e.message.should.eql(`[DI Engine]::got "string" as a dependency evaluation result. Expected an object or a function.`);
-      }
-    });
-
-    it("should fail on attemt to call out an object", async () => {
-      try {
-        const ctx = await di.init((ctx) => {
-          ctx.registerAll({ a: () => ({ value: () => "mock" }) });
-          return ctx.invoke();
-        });
-        ctx.a();
-        should.fail("Unexpected flow");
-      } catch (e) {
-        e.message.should.eql(`[DI Engine]::Proxy::apply::"obj" is not a function".`);
       }
     });
   });
