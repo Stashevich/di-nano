@@ -1,3 +1,4 @@
+[![tests](https://github.com/Stashevich/di-nano/actions/workflows/node.js.yml/badge.svg?event=push)](https://github.com/Stashevich/di-nano/actions/workflows/node.js.yml)
 # GENERAL
   An implementation of Dependency Injection pattern in a way, which enables its usages in a simplest way possible.
 
