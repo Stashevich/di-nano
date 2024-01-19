@@ -4,7 +4,7 @@
   "description": "An elegant implementation of Dependency Injection for Node.js projects",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --watch test"
+    "test": "mocha test"
   },
   "keywords": [
     "dependency injection",
