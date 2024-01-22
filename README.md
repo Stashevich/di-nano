@@ -52,11 +52,10 @@
 
 # USAGE
 
-  **di-nano** exposes next 5 functions to the end user:
+  **di-nano** exposes next 4 functions to the end user:
   - [init](#initcallback-promise)
   - [registerAll](#registeralldependencies-undefined)
   - [registerOne](#registeronedependency-name-undefined)
-  - [registerMock](#registermockname-undefined)
   - [invoke](#invoke-promise)
 
   To define a dependency, create a function and export it under any name.
@@ -158,16 +157,6 @@
   /**
    * @param { Object } dependency - A single dependency map.
    * @param { String } name - A module name to set.
-   *
-   * @returns undefined.
-  */
-  ```
-
-  #### registerMock(name, value): undefined
-  ```javascript
-  /**
-   * @param { String } name - A module name to set.
-   * @param { Object | Function } value - A module source.
    *
    * @returns undefined.
   */

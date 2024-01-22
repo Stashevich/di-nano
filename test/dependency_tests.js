@@ -193,22 +193,6 @@ describe("[ Dependency ]", () => {
       dep.isReady().should.eql(true);
     });
 
-    it("should 'freeze' a instantiated dependency", async () => {
-      const modules = new Map([
-        ["a", new Dependency("a", () => ({}))]
-      ]);
-      await modules.get("a").buildUp(modules);
-      Object.isFrozen(modules.get("a").getData()).should.eql(true);
-    });
-
-    it("should not 'freeze' a dependency, when it is a mock", async () => {
-      const modules = new Map([
-        ["a", new Dependency("a", () => ({}), true)]
-      ]);
-      await modules.get("a").buildUp(modules);
-      Object.isFrozen(modules.get("a").getData()).should.eql(false);
-    });
-
     it("should not instantiate a dependency more than once", async () => {
       let counter = 0;
       const modules = new Map([
