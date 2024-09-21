@@ -1,15 +1,18 @@
-const { describe }             = require("mocha");
-const { isFunction, isObject } = require("../lib/util");
+const { describe }                   = require("mocha");
+const { isFunction, validateObject } = require("../lib/util");
 
 describe("[ Utils ]", () => {
   it("should check entinity for to be an object", () => {
-    isObject(() => {}).should.equal(true);
-    isObject({}).should.equal(true);
-    isObject(null).should.equal(false);
-    isObject(undefined).should.equal(false);
-    isObject("mock").should.equal(false);
-    isObject(true).should.equal(false);
-    isObject(Symbol("mock")).should.equal(false);
+    const msg = (type) =>
+      `[DI Engine]::dependency, named >>> "abc" <<< has type - "${type}"` +
+      ". Expected an object or a function."
+    validateObject(() => {}, "abc")
+    validateObject({}, "abc")
+    try { validateObject(null, "abc") } catch (e) { e.message.should.eql(msg("null"))};
+    try { validateObject(undefined, "abc") } catch (e) { e.message.should.eql(msg("undefined"))};
+    try { validateObject("mock", "abc") } catch (e) { e.message.should.eql(msg("string"))};
+    try { validateObject(true, "abc") } catch (e) { e.message.should.eql(msg("boolean"))};
+    try { validateObject(Symbol("mock"), "abc") } catch (e) { e.message.should.eql(msg("symbol"))};
   });
 
   it("should check entinity for to a an function", () => {

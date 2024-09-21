@@ -54,11 +54,10 @@ describe("[ Error Module ]", () => {
 
   it("should throw UNSUPPORTED error", () => {
     try {
-      throwErr(ErrorCode.UNSUPPORTED, null);
+      throwErr(ErrorCode.UNSUPPORTED, "msg-mock");
       should.fail("Unexpected flow");
     } catch (e) {
-      msgCheck(e, 'got "null" as a dependency evaluation result. ',
-        "Expected an object or a function.");
+      msgCheck(e, "msg-mock. Expected an object or a function.");
     }
   });
 

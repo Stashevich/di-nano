@@ -164,9 +164,7 @@ describe("[ Dependency ]", () => {
           await dep.buildUp(null);
           should.fail("Unexpected flow");
         } catch (e) {
-          e.message.should
-            .eql(`[DI Engine]::got "${type}" as a dependency evaluation result. ` +
-                 "Expected an object or a function.");
+          e.message.should.eql(`[DI Engine]::dependency, named >>> "a" <<< has type - "${type}". Expected an object or a function.`)
         }
       }
       await test(undefined,      "undefined");
