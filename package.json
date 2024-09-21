@@ -1,10 +1,10 @@
 {
   "name": "di-nano",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "An elegant implementation of Dependency Injection for Node.js projects",
   "main": "index.js",
   "scripts": {
-    "test": "mocha test"
+    "test": "jest --verbose"
   },
   "keywords": [
     "dependency injection",
@@ -14,13 +14,10 @@
   "author": "stashevichvlad@gmail.com",
   "license": "Apache-2.0",
   "devDependencies": {
-    "chai": "^4.3.7",
-    "chai-as-promised": "^7.1.1",
-    "mocha": "^10.2.0",
-    "sinon": "^17.0.1"
+    "jest": "^29.7.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Stashevich/di-nano"
+    "url": "git+https://github.com/Stashevich/di-nano.git"
   }
 }
